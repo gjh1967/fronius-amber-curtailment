@@ -105,12 +105,12 @@ Create two **Toggle** helpers:
 
 #### Method A: Direct Import (Easiest)
 1. Click this button:
-   [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/your-repo/fronius-amber-curtailment/blob/main/blueprint.yaml)
+   [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/gjh1967/fronius-amber-curtailment/blob/main/blueprint.yaml)
 
 2. Or manually:
    - Go to **Settings → Automations & Scenes → Blueprints**
    - Click **Import Blueprint**
-   - Paste URL: `https://github.com/your-repo/fronius-amber-curtailment/blob/main/blueprint.yaml`
+   - Paste URL: `https://github.com/gjh1967/fronius-amber-curtailment/blob/main/blueprint.yaml`
 
 #### Method B: Manual Installation
 1. Download `fronius_amber_blueprint.yaml`
