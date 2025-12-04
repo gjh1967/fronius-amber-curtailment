@@ -65,6 +65,10 @@ views:
           
           **House Load:** {{ states('sensor.inverter_load_power') | int(0) }}W
           
+          **Battery Charge Target:** 4500W
+          
+          **Safety Buffer:** 500W
+          
           **Target Generation:**
           {{ states('sensor.inverter_load_power') | int(0) + 4500 + 500 }}W
           (House + Battery + Buffer)
@@ -74,6 +78,8 @@ views:
           {% set target = house + 4500 + 500 %}
           {% set limit = [target, 8200] | min %}
           {{ limit }}W (capped at inverter max)
+          
+          **Actual Solar Generation:** {{ states('sensor.inverter_pv_power') | int(0) }}W
           
           **Curtailment Allowed:** 
           {% if now().hour < 16 and is_state('input_boolean.fronius_manual_override', 'off') %}
@@ -203,4 +209,4 @@ views:
 #      - Switch to YAML mode
 #      - Paste the "views:" section
 # 
-# ============================================================================
+# =============================================================================
