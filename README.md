@@ -1,322 +1,519 @@
-# Fronius Solar Curtailment for Amber Electric
+Fronius Solar Curtailment for Amber Electric
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
-[![GitHub Release](https://img.shields.io/github/release/gjh1967/fronius-amber-curtailment.svg)](https://github.com/gjh1967/fronius-amber-curtailment/releases)
-[![License](https://img.shields.io/github/license/gjh1967/fronius-amber-curtailment.svg)](LICENSE)
 
-**Automatically limit Fronius solar generation during Amber Electric negative pricing to eliminate export charges**
+Automatically limit Fronius solar generation during Amber Electric negative pricing to eliminate export charges
 
-![Fronius Solar Curtailment](/dashboard-preview.png)
-*Dashboard showing active curtailment during negative pricing*
 
----
 
-## 🌟 Features
+🎯 What Problem Does This Solve?
 
-- ✅ **Automatic curtailment** during negative Amber pricing
-- ✅ **Dynamic calculation** based on house load + battery charging
-- ✅ **Zero configuration** required beyond initial setup
-- ✅ **Universal compatibility** with Fronius Primo, Symo, Gen24
-- ✅ **Battery optional** - works with or without energy storage
-- ✅ **Safety features** - manual override and automatic reset
-- ✅ **Functional dashboard** - real-time monitoring and control
 
----
+During negative Amber Electric pricing periods (typically 7am-4pm on sunny days), exporting solar to the grid costs you money instead of earning credits.
 
-## 🎯 What Problem Does This Solve?
 
-During negative Amber Electric pricing periods (typically 10am-4pm on sunny days), exporting solar to the grid **costs you money** instead of earning credits. 
+Example (verified on my system):
 
-**Without this automation:**
-- Your Fronius generates full 8.2kW (example)
-- House uses 1.2kW
-- Battery charges 4kW
-- **3kW exported** = You pay ~$0.09/kWh to export
-- **Daily cost:** $2-5 during negative pricing
 
-**With this automation:**
-- Fronius limits to 6.2kW (1.2kW + 4kW + 0.5kW buffer)
-- House uses 1.2kW
-- Battery charges 4.5kW
-- **Export: 0W** = $0 cost
-- **Savings:** $50-100+/month during solar season
+Fronius Primo 8.2 generates full 8.2kW
+House uses 1.2kW during day
+Battery (Alpha ESS) charges at ~4kW
+Excess 3kW exported = You pay ~$0.09/kWh to export
+Daily cost: $2-3 during negative pricing periods
 
----
 
-## 🚀 Quick Start
+With this automation:
 
-### Prerequisites
-- Fronius solar inverter (any model with Modbus support)
-- Amber Electric account with Home Assistant integration or Any dynamic pricing retailer ie LocalVolts etc
-- Amber Electric Integration. (https://www.home-assistant.io/integrations/amberelectric/)
-- Battery system (optional - works without)
 
-### Installation (5 minutes)
+Fronius limits to calculated target based on house load + battery charge + buffer
+Prevents unnecessary grid export
+Savings: Near-zero export during negative pricing
 
-1. **Install the Amber Electric integration.**
-2. **Import Blueprint**
-   
-   [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/gjh1967/fronius-amber-curtailment/blob/main/blueprint.yaml)
 
-3. **Enable Fronius Modbus**
-   - Fronius web interface → Communication → Modbus TCP → Enable
-   
-4. **Configure & Run**
-   - Create automation from blueprint
-   - Enter your sensors and inverter details
-   - Save and test!
 
-**Full documentation:** [Installation Guide](DOCS/Installion_Guide.md) Yet to be actioned
- 
----
+🌟 Features
 
-## 📊 How It Works
 
-```mermaid
-graph LR
-    A[Amber Price] -->|< $0| B[Curtailment Active]
-    A -->|≥ $0| C[Full Power]
-    B --> D[Calculate Limit]
-    D --> E[House Load + Battery + Buffer]
-    E --> F[Limit Fronius Output]
-    C --> G[8200W Max Generation]
-```
+✅ Automatic curtailment during negative Amber pricing
+✅ Dynamic calculation based on actual house load + battery charging needs
+✅ Works standalone - no external energy management system required
+✅ Battery optional - set charge target to 0 if no battery
+✅ Safety features - manual override and automatic reset
+✅ Monitoring dashboard included
 
-**Smart Calculation:**
-- Monitors Amber grid sell price every update
-- When price goes negative:
-  - Calculates: `Target = House Load + Battery Charge + Safety Buffer`
-  - Limits Fronius to calculated target
-  - Prevents unnecessary grid export
-- When price returns positive:
-  - Restores full solar generation
-  - Maximizes your solar utilization
 
----
 
-## 🔧 Compatibility
+🔧 Verified Compatibility
 
-### Tested Systems
-| Component | Model | Status |
-|-----------|-------|--------|
-| Inverter | Fronius Primo 8.2-1 | ✅ Tested |
-| Inverter | Fronius Symo 10.0-3 | ✅ Tested |
-| Inverter | Fronius Gen24 Plus | ⚠️ Community reported |
-| Battery | Alpha ESS SMILE-S5 | ✅ Tested |
-| Battery | Tesla Powerwall 2 | ⚠️ Community reported |
-| Retailer | Amber Electric | ✅ Tested (NSW, VIC, QLD, SA) |
 
-### Should Work With
-- All Fronius inverters with SunSpec Modbus support
-- Any battery system (or no battery)
-- Any dynamic pricing retailer (with sensor adaptation)
+My Tested System (gjh1967)
 
-**Share your config!** Help us expand the compatibility list.
 
----
 
-## 📦 What's Included
 
-### Core Files
-- **`blueprint.yaml`** - Main automation blueprint (works standalone)
-- **`helpers.yaml`** - Companion automations (4pm restore, override, etc.)
-- **`dashboard.yaml`** - Monitoring dashboard template
+Component
+Model
+Status
 
-### Documentation
-- **`docs/INSTALLATION.md`** - Complete setup guide (11,000+ words)
-- **`docs/QUICKSTART.md`** - 5-minute summary
-- **`docs/TROUBLESHOOTING.md`** - Common issues and fixes
-- **`docs/CONFIGURATION.md`** - Detailed settings guide
 
-### Examples
-- **`examples/primo-8.2-alpha-ess.yaml`** - Full configuration example
-- **`examples/symo-10.0-powerwall.yaml`** - Alternative setup
-- **`examples/gen24-no-battery.yaml`** - Without battery storage
 
----
 
-## 🎛️ Configuration Options
+Inverter
+Fronius Primo 8.2-1
+✅ Working
 
-All configurable via Blueprint UI - no YAML editing required!
 
-### Required Settings
-| Setting | Example | Description |
-|---------|---------|-------------|
-| Grid Price Sensor | `sensor.amber_general_price` | Your Amber price sensor |
-| House Load Sensor | `sensor.house_consumption` | Current power usage |
-| Battery Level | `sensor.battery_soc` | SOC percentage (0-100%) |
-| Export Power | `sensor.grid_export` | Power to grid in watts |
-| Modbus Hub | `fronius_control` | Your Modbus connection name |
-| Inverter Max Output | `8200` W | Your inverter's rating |
+Battery
+Alpha ESS SMILE-S5 (20kWh)
+✅ Working
 
-### Optional Settings
-| Setting | Default | Range |
-|---------|---------|-------|
-| Battery Charge Target | 4500 W | 0-15000 W |
-| Safety Buffer | 500 W | 0-2000 W |
-| Minimum Generation | 500 W | 0-2000 W |
-| Curtailment End Time | 16:00:00 | Any time |
-| Modbus Register | 40232 | 40000-50000 |
 
----
+Retailer
+Amber Electric (NSW)
+✅ Working
 
-## 📸 Screenshots.  
 
-### Dashboard Overview
-![Dashboard](/dashboard-full.png)
+Modbus Register
+40232
+✅ Confirmed
 
----
 
-## ❓ FAQ
+House Load
+~1.2kW average
+✅ Tested
 
-### Do I need EnergyManager.com.au?
 
-**No!** This automation is completely standalone and independent. 
 
-If you use [EnergyManager.com.au](https://energymanager.com.au) (a third-party energy management platform), this automation can work alongside it, but EnergyManager is **not required**. A deeper Understanding of integrating this into EnergyManager is required.
 
-*Disclaimer: This project is not affiliated with or endorsed by EnergyManager.com.au.*
+Should Work With
 
-### Can I use this without a battery?
 
-**Yes!** Set "Battery Charge Target" to `0` in the configuration. The automation will limit solar to house load + buffer only.
+Other Fronius Primo models (3.0, 5.0, 6.0, 8.2)
+Fronius Symo models (check your Modbus register address)
+Fronius Gen24 (check your Modbus register address)
+Any battery system (or no battery)
+Other dynamic pricing retailers (adapt price sensor)
 
-### Will this work with my battery brand?
 
-**Yes!** This automation only controls the Fronius inverter. Your battery system continues to operate normally with its built-in management. 
+Note: Modbus register 40232 works for most Fronius inverters but verify in your Fronius Modbus documentation.
 
-### What if I don't have Amber Electric?
 
-You can adapt it for other dynamic pricing providers by using their price sensor instead. The core logic remains the same.
 
-### Is this safe?
+📋 Prerequisites
+
+
+Required
+
+
+Fronius solar inverter with Modbus TCP support
+Amber Electric account + Home Assistant integration installed
+Home Assistant 2024.1 or newer
+Network access to Fronius inverter
+
+
+Required Sensors
+
+
+Grid feed-in price (from Amber integration - sensor.amber_feed_in_price)
+House load power in Watts
+Grid export power in Watts
+Battery SOC in % (if you have a battery)
+
+
+Important
+
+
+❌ Disable Amber SmartShift in the Amber app
+❌ Disable Automated Solar Curtailment in the Amber app
+This automation replaces those features
+
+
+
+🚀 Quick Installation
+
+
+Step 1: Install Amber Integration
+
+
+Settings → Devices & Services → Add Integration
+Search "Amber Electric"
+Enter API token from https://app.amber.com.au
+Verify sensor.amber_feed_in_price exists
+
+
+Step 2: Enable Fronius Modbus
+
+
+Access Fronius web interface (http://YOUR_FRONIUS_IP)
+Communication → Modbus → Enable Modbus TCP
+Port: 502, Unit ID: 1 (typical)
+Save and note your IP address
+
+
+Step 3: Configure Home Assistant Modbus
+
+
+Add to configuration.yaml:
+
+
+modbus:
+  - name: fronius_control
+    type: tcp
+    host: YOUR_FRONIUS_IP  # Change this
+    port: 502
+    delay: 1
+    timeout: 5
+
+
+
+Restart Home Assistant.
+
+
+Step 4: Create Helper Toggles
+
+
+Settings → Helpers → Create two Toggles:
+
+
+"Solar Curtailment Active" (icon: mdi:solar-power-variant)
+"Fronius Manual Override" (icon: mdi:toggle-switch-off-outline)
+
+
+Step 5: Import Blueprint
+
+
+
+
+
+Or manually: Settings → Blueprints → Import Blueprint → Enter URL above
+
+
+Step 6: Configure Automation
+
+
+Settings → Automations → Create Automation
+Select "Fronius Solar Curtailment for Amber Electric"
+Configure your sensors and inverter details
+Save
+
+
+Full detailed guide: Installation Guide
+
+
+
+⚙️ Key Configuration Settings
+
+
+Required Settings
+
+
+
+
+Setting
+What to Enter
+Where to Find
+
+
+
+
+Grid Feed in Price Sensor
+sensor.amber_feed_in_price
+Amber integration
+
+
+House Load Sensor
+Your power sensor
+Developer Tools → States
+
+
+Modbus Hub Name
+fronius_control
+What you used in Step 3
+
+
+Inverter Max Output
+Your inverter watts
+Nameplate (e.g., 8200 for Primo 8.2)
+
+
+Modbus Register
+40232
+Works for most - verify in your Fronius docs
+
+
+Unit ID
+1
+Standard for single inverter
+
+
+
+
+Battery Settings
+
+
+
+
+Setting
+Recommended
+Notes
+
+
+
+
+Battery Charge Target
+4500W
+Set to 0 if no battery
+
+
+Safety Buffer
+500W
+Increase if still exporting
+
+
+Minimum Generation
+500W
+Safety floor
+
+
+
+
+
+📊 How It Works
+
+
+Calculation:
+
+
+When Amber Price < 0 Cents:
+  Target = House Load + Battery Charge Target + Safety Buffer
+  Limit Fronius to Target (capped at inverter max)
+
+When Amber Price ≥ 0 Cents:
+  Restore Fronius to full power
+
+
+
+Example (my system):
+
+
+House load: 1200W
+Battery target: 4500W
+Safety buffer: 500W
+Fronius limited to: 6200W
+
+
+Result: Battery charges, house powered, minimal export.
+
+
+
+🧪 My Real-World Results
+
+
+System:
+
+
+Fronius Primo 8.2-1
+Alpha ESS SMILE-S5 (20kWh)
+Amber Electric (NSW)
+Average house load: 1.2kW during day
+
+
+Results:
+
+
+Before automation: $2-3/day export charges during negative pricing
+After automation: Near-zero export, $0-0.43/day
+Automation behavior: Activates during negative pricing, limits as close to house load as possible, restores full power when price positive
+
+
+Status: Working reliably as of December 2025
+
+
+
+❓ FAQ
+
+
+Do I need EnergyManager.com.au?
+
+
+No. This automation is standalone. If you use EnergyManager.com.au, this can work alongside it, but it's not required. Further integration work needed for EnergyManager compatibility.
+
+
+Disclaimer: Not affiliated with EnergyManager.com.au.
+
+
+Can I use this without a battery?
+
+
+Yes. Set "Battery Charge Target" to 0. Automation limits to house load + buffer only.
+
+
+What if I don't have Amber Electric?
+
+
+Adapt for other dynamic pricing retailers such as LocalVolts. by using their price sensor. Core logic remains the same.
+
+
+Is this safe?
+
 
 Yes, with proper testing:
-- ✅ Manual override for emergencies
-- ✅ Automatic reset daily at 6am
-- ✅ Safety minimum generation setting
-- ✅ Automatic full power restore at 4pm
-
-**Always test with manual override first!**
-
----
-
-## 🧪 Real-World Results
-
-### My System (gjh1967)
-**Setup:**
-- Fronius Primo 8.2-1
-- Alpha ESS SMILE-S5 (20kWh)
-- Amber Electric (NSW)
-- Average house load: 1.2kW during day
-
-**Results:**
-- **Before:** $2-3/day export charges during negative pricing
-- **After:** $0-0.43/day (near zero export)
-- **Monthly savings:** $60-100 during peak solar months. Estimated
-- **Annual savings:** $400-700 estimated
-
-### Community Results
-Share yours! 
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Go Hard or Go Home.
-
-### Ways to Help
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📝 Improve documentation
-- ✅ Test on different hardware
-- 🌟 Share your success story
-
-### Tested Configurations Needed
-- Fronius Gen24 models
-- Tesla Powerwall
-- Different battery brands
-- Other Australian states
-- Systems without batteries
-
----
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) for details
-
-Free to use, modify, and distribute. Attribution appreciated but not required.
-
----
-
-## ⚠️ Disclaimer
-
-This automation directly controls your solar inverter via Modbus. While extensively tested:
-
-- ✅ Always test with manual override first
-- ✅ Monitor closely for the first few days
-- ✅ Understand the risks of automated inverter control
-- ❌ Author not responsible for any issues, damages, or lost savings
-- ❌ Use at your own risk
-- ❌ Not affiliated with Fronius, Amber Electric, or any manufacturers
-- ❌ Not Compatible whilst Ambers Smartshift. You need to toggle off SmartShift Automation & Automated Solar Curtailment in the Amber App. 
-
-**Electrical systems disclaimer:** This automation controls power generation equipment. Ensure you understand the implications and comply with local regulations.
-
----
-
-## 🙏 Acknowledgments
-
-- **Fronius** for SunSpec Modbus documentation
-- **Amber Electric** for dynamic pricing API
-- **Home Assistant community** for inspiration and testing
-- **Alpha ESS** for reliable battery integration
-- All contributors and testers
-
-Special thanks to everyone who helped test and refine this automation!
-
----
-
-## 📞 Support
-
-### Getting Help
-1. **Read the docs:** [Installation Guide](docs/INSTALLATION.md)
-2. **Check issues:** [Existing GitHub Issues](https://github.com/gjh1967/fronius-amber-curtailment/issues)
-3. **Ask the community:** [Home Assistant Forum Thread](https://community.home-assistant.io)
 
 
-### Feature Requests
-Feel free to build on this Code. Ive found Claudeai works best.
+✅ Manual override for emergencies
+✅ Automatic reset at 6am daily
+✅ Safety minimum generation (500W default)
+✅ Automatic restore at 4pm
 
----
 
-## 🔗 Links
+Always test with manual override first.
 
-- **Home Assistant Forum:** [Discussion Thread](https://community.home-assistant.io)
-- **Blueprint Exchange:** [Browse Other Blueprints](https://community.home-assistant.io/c/blueprints-exchange)
-- **Fronius Documentation:** [Modbus Manuals](https://www.fronius.com/en/solar-energy/installers-partners/service-support/software)
-- **Amber Electric:** [Sign Up](https://www.amber.com.au)
-- **Amber Electric Integration:** https://www.home-assistant.io/integrations/amberelectric/
 
----
+Will this work with my Fronius model?
 
-## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=gjh1967/fronius-amber-curtailment&type=Date)](https://star-history.com/#gjh1967/fronius-amber-curtailment&Date)
+Verified working: Fronius Primo 8.2-1 with register 40232
 
----
 
-**Made with ☀️ by the Home Assistant community**
+Likely to work: Other Primo models, most Symo models with same register
 
-If this saved you money, consider:
-- ⭐ Starring this repo
-- 🗣️ Sharing with other Fronius + Amber users
-- 💬 Contributing your experience
-- ☕ [Buy me a coffee](https://buymeacoffee.com/gjh1967) (optional!)
 
----
+Must verify: Gen24 may use different register - check your Modbus documentation
 
-**Version:** 1.0.0  
-**Last Updated:** December 2025 
-**Maintained:** Active  
-**Status:** Almost Cooked ✅
+
+Critical: Confirm your Modbus register address in Fronius documentation before use.
+
+
+
+📦 What's Included
+
+
+Core Files
+
+
+blueprint.yaml - Main automation blueprint
+helpers.yaml - Companion automations (4pm restore, override handler, etc.)
+dashboard.yaml - Monitoring dashboard template
+
+
+Documentation
+
+
+DOCS/Installation_Guide.md - Complete step-by-step setup
+DOCS/QUICKSTART.md - 5-minute quick reference
+
+
+
+🤝 Contributing
+
+
+Contributions welcome!
+
+
+Ways to Help
+
+
+🐛 Report bugs with your system specs
+✅ Test on different Fronius models and report results
+📝 Improve documentation
+🌟 Share your configuration and results
+
+
+Especially Needed
+
+
+Testing on Fronius Symo models
+Testing on Fronius Gen24 models
+Verification of Modbus register addresses for different models
+Results from other Australian states
+Configurations without batteries
+
+
+
+⚠️ Disclaimer
+
+
+This automation directly controls your solar inverter via Modbus.
+
+
+✅ Test thoroughly with manual override first
+✅ Monitor closely for first few days
+✅ Verify Modbus register address for YOUR inverter model
+❌ Author not responsible for any issues or damages
+❌ Use at your own risk
+❌ Not affiliated with Fronius, Amber Electric, or any manufacturers
+❌ Not compatible with Amber SmartShift (must disable in app)
+
+
+This works on MY system (Primo 8.2). Your mileage may vary - verify compatibility with your equipment.
+
+
+
+📜 License
+
+
+MIT License - Free to use, modify, and distribute.
+
+
+
+🙏 Acknowledgments
+
+
+Fronius for SunSpec Modbus documentation
+Amber Electric for dynamic pricing API
+Home Assistant community for testing and feedback
+Claude.ai for development assistance
+
+
+
+📞 Support
+
+
+Getting Help
+
+
+Read the Installation Guide
+Check GitHub Issues
+Post in Home Assistant Community
+
+
+Reporting Issues
+
+
+Include:
+
+
+Fronius inverter model
+Battery system (if any)
+Home Assistant version
+Automation trace
+What you expected vs what happened
+
+
+
+🔗 Links
+
+
+Amber Electric Integration: https://www.home-assistant.io/integrations/amberelectric/
+Fronius Modbus Docs: https://www.fronius.com/en/solar-energy/installers-partners/service-support/software
+Home Assistant Forum: https://community.home-assistant.io
+Amber Electric: https://www.amber.com.au
+
+
+
+Made with ☀️ by gjh1967 and the Home Assistant community & Claudeai
+
+
+If this helps you:
+
+
+⭐ Star this repo
+🗣️ Share with other Fronius + Amber users
+💬 Report your results
+
+
+
+Version: 1.0.0
+
+Last Updated: December 2025
+
+Status: Working on Fronius Primo 8.2-1 + Alpha ESS + Amber NSW ✅
