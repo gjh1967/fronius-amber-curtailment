@@ -454,7 +454,7 @@ Run script and check if inverter limits. If yes, problem is in automation logic.
 
 Found a bug? Have an improvement?
 
-**GitHub:** [your-repo/fronius-amber-curtailment](https://github.com/your-repo)
+**GitHub:** [gjh1967/fronius-amber-curtailment](https://github.com/gjh1967)
 
 **Home Assistant Community:** [Forum Thread](https://community.home-assistant.io)
 
