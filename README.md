@@ -160,19 +160,10 @@ All configurable via Blueprint UI - no YAML editing required!
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshots.  To be actioned.
 
 ### Dashboard Overview
 ![Dashboard](images/dashboard-full.png)
-
-### Active Curtailment
-![Curtailment Active](images/curtailment-active.png)
-
-### Manual Override
-![Manual Override](images/manual-override.png)
-
-### Automation Configuration
-![Blueprint Config](images/blueprint-config.png)
 
 ---
 
