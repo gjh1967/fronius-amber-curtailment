@@ -38,9 +38,9 @@ views:
       - type: entities
         title: 📊 Current System Status
         entities:
-          - entity: sensor.amber_general_price  # CHANGE THIS to your Amber price sensor
+          - entity: sensor.amber_feed_in_price  # CHANGE THIS to your Amber Sell price sensor
             name: Grid Sell Price
-            icon: mdi:currency-usd
+            icon: mdi:currency-USD
           - entity: sensor.inverter_pv_power  # CHANGE THIS to your solar power sensor
             name: Solar Generation
             icon: mdi:solar-power
@@ -61,7 +61,7 @@ views:
         content: >-
           **Current Time:** {{ now().strftime('%H:%M:%S') }}
           
-          **Grid Price:** {{ states('sensor.amber_general_price') | float(0) | round(2) }}c/kWh
+          **Grid Sell Price:** {{ states('sensor.amber_feed_in_price') | float(0) | round(2) }}c/kWh
           
           **House Load:** {{ states('sensor.inverter_load_power') | int(0) }}W
           
@@ -89,7 +89,7 @@ views:
           {% endif %}
           
           **Status:** 
-          {% if states('sensor.amber_general_price') | float(0) < 0 %}
+          {% if states('sensor.amber_feed_in_price') | float(0) < 0 %}
           🔴 NEGATIVE PRICING - Curtailment should be active
           {% else %}
           🟢 POSITIVE PRICING - Full generation allowed
@@ -125,8 +125,8 @@ views:
         hours_to_show: 24
         refresh_interval: 60
         entities:
-          - entity: sensor.amber_general_price  # CHANGE THIS
-            name: Grid Price
+          - entity: sensor.amber_feed_in_price  # CHANGE THIS
+            name: Grid Sell Price
           - entity: sensor.inverter_pv_power  # CHANGE THIS
             name: Solar Gen
           - entity: sensor.inverter_load_power  # CHANGE THIS
@@ -181,7 +181,7 @@ views:
 # 
 # 1. Search for "# CHANGE THIS" comments throughout this file
 # 2. Replace placeholder entity IDs with your actual sensors:
-#    - sensor.amber_general_price → your Amber price sensor
+#    - sensor.amber_feed_in_price → your Amber Sell price sensor
 #    - sensor.inverter_pv_power → your solar generation sensor
 #    - sensor.inverter_load_power → your house load sensor
 #    - sensor.inverter_battery_level → your battery SOC sensor
