@@ -19,7 +19,7 @@ blueprint:
     - Emergency manual override available
     
   domain: automation
-  source_url: https://github.com/your-repo/fronius-amber-curtailment
+  source_url: https://github.com/gjh1967/fronius-amber-curtailment
   
   input:
     # === SENSORS ===
@@ -210,7 +210,7 @@ trigger:
   - platform: state
     entity_id: !input battery_level_sensor
   - platform: state
-    entity_id: !input grid_price_sensor
+    entity_id: !input grid_Sell_price_sensor
   - platform: state
     entity_id: !input house_load_sensor
   - platform: state
@@ -232,7 +232,7 @@ action:
       # === ACTIVATE CURTAILMENT (Negative Price, Not Yet Active) ===
       - conditions:
           - condition: numeric_state
-            entity_id: !input grid_price_sensor
+            entity_id: !input grid_Sell_price_sensor
             below: 0
           - condition: state
             entity_id: input_boolean.solar_curtailment_active
@@ -263,7 +263,7 @@ action:
       # === MAINTAIN CURTAILMENT (Negative Price, Already Active) ===
       - conditions:
           - condition: numeric_state
-            entity_id: !input grid_price_sensor
+            entity_id: !input grid_Sell_price_sensor
             below: 0
           - condition: state
             entity_id: input_boolean.solar_curtailment_active
@@ -292,7 +292,7 @@ action:
           - condition: not
             conditions:
               - condition: numeric_state
-                entity_id: !input grid_price_sensor
+                entity_id: !input grid_Sell_price_sensor
                 below: 0
           - condition: state
             entity_id: input_boolean.solar_curtailment_active
