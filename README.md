@@ -64,7 +64,7 @@ During negative Amber Electric pricing periods (typically 10am-4pm on sunny days
    - Enter your sensors and inverter details
    - Save and test!
 
-**Full documentation:** [Installation Guide](docs/README.md)
+**Full documentation:** [Installation Guide](/README.md)
 
 ---
 
