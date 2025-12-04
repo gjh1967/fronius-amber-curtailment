@@ -19,7 +19,7 @@
 - ✅ **Universal compatibility** with Fronius Primo, Symo, Gen24
 - ✅ **Battery optional** - works with or without energy storage
 - ✅ **Safety features** - manual override and automatic reset
-- ✅ **Beautiful dashboard** - real-time monitoring and control
+- ✅ **Functional dashboard** - real-time monitoring and control
 
 ---
 
@@ -47,7 +47,7 @@ During negative Amber Electric pricing periods (typically 10am-4pm on sunny days
 
 ### Prerequisites
 - Fronius solar inverter (any model with Modbus support)
-- Amber Electric account with Home Assistant integration
+- Amber Electric account with Home Assistant integration or Any dynamic pricing retailer ie LocalVolts etc
 - Battery system (optional - works without)
 
 ### Installation (5 minutes)
@@ -64,7 +64,7 @@ During negative Amber Electric pricing periods (typically 10am-4pm on sunny days
    - Enter your sensors and inverter details
    - Save and test!
 
-**Full documentation:** [Installation Guide](docs/INSTALLATION.md)
+**Full documentation:** [Installation Guide](docs/README.md)
 
 ---
 
