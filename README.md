@@ -160,7 +160,7 @@ All configurable via Blueprint UI - no YAML editing required!
 
 ---
 
-## 📸 Screenshots.  To be actioned.
+## 📸 Screenshots.  
 
 ### Dashboard Overview
 ![Dashboard](/dashboard-full.png)
