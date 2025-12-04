@@ -48,18 +48,20 @@ During negative Amber Electric pricing periods (typically 10am-4pm on sunny days
 ### Prerequisites
 - Fronius solar inverter (any model with Modbus support)
 - Amber Electric account with Home Assistant integration or Any dynamic pricing retailer ie LocalVolts etc
+- Amber Electric Integration. (https://www.home-assistant.io/integrations/amberelectric/)
 - Battery system (optional - works without)
 
 ### Installation (5 minutes)
 
-1. **Import Blueprint**
+1. Install the Amber Electric integration.
+2. **Import Blueprint**
    
    [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/gjh1967/fronius-amber-curtailment/blob/main/blueprint.yaml)
 
-2. **Enable Fronius Modbus**
+3. **Enable Fronius Modbus**
    - Fronius web interface → Communication → Modbus TCP → Enable
    
-3. **Configure & Run**
+4. **Configure & Run**
    - Create automation from blueprint
    - Enter your sensors and inverter details
    - Save and test!
