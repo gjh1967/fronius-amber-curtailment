@@ -53,7 +53,7 @@ During negative Amber Electric pricing periods (typically 10am-4pm on sunny days
 
 ### Installation (5 minutes)
 
-1. Install the Amber Electric integration.
+1. **Install the Amber Electric integration.**
 2. **Import Blueprint**
    
    [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/gjh1967/fronius-amber-curtailment/blob/main/blueprint.yaml)
@@ -305,6 +305,7 @@ Feel free to build on this Code. Ive found Claudeai works best.
 - **Blueprint Exchange:** [Browse Other Blueprints](https://community.home-assistant.io/c/blueprints-exchange)
 - **Fronius Documentation:** [Modbus Manuals](https://www.fronius.com/en/solar-energy/installers-partners/service-support/software)
 - **Amber Electric:** [Sign Up](https://www.amber.com.au)
+- **Amber Electric Integration:** https://www.home-assistant.io/integrations/amberelectric/
 
 ---
 
@@ -325,6 +326,6 @@ If this saved you money, consider:
 ---
 
 **Version:** 1.0.0  
-**Last Updated:** December 2024  
+**Last Updated:** December 2025 
 **Maintained:** Active  
 **Status:** Almost Cooked ✅
