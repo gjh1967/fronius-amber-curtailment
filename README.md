@@ -6,7 +6,7 @@
 
 **Automatically limit Fronius solar generation during Amber Electric negative pricing to eliminate export charges**
 
-![Fronius Solar Curtailment](images/dashboard-preview.png)
+![Fronius Solar Curtailment](/dashboard-preview.png)
 *Dashboard showing active curtailment during negative pricing*
 
 ---
