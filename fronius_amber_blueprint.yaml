@@ -1,317 +1,516 @@
 blueprint:
-  name: Fronius Solar Curtailment for Amber Electric (Negative Pricing)
+  name: Fronius Solar Curtailment - Dynamic Price Control
   description: >
-    Automatically limits Fronius solar inverter generation during negative Amber Electric pricing
-    to prevent grid export charges. Dynamically adjusts based on house load and battery charging needs.
-    
-    **Compatible with:** Fronius Primo, Symo, Gen24, and other SunSpec-compliant inverters.
+    Automatically throttles Fronius inverter during negative grid prices to prevent
+    exporting power while maintaining battery charging and house load. Includes
+    manual override and automatic restoration at 4pm and 6am.
     
     **Requirements:**
     - Fronius inverter with Modbus TCP enabled
-    - Amber Electric integration
-    - Home Assistant Modbus integration configured
-    
-    **What it does:**
-    - Monitors Amber grid sell price
-    - When price goes negative: Limits solar to (House Load + Battery Charge + Buffer)
-    - When price returns positive: Restores full solar generation
-    - Automatically resets at configurable time (default 4pm)
-    - Emergency manual override available
-    
+    - Modbus integration configured (see modbus config section)
+    - Input boolean helpers (auto-created if using UI)
+    - Grid price sensor with negative values during low-price periods
+    - Inverter sensors for battery level, load power, and export power
+  
   domain: automation
-  source_url: https://github.com/gjh1967/fronius-amber-curtailment
   
   input:
-    # === SENSORS ===
-    grid_price_sensor:
-      name: Grid Sell Price Sensor
-      description: Your Amber Electric grid sell price sensor (should show negative values during negative pricing)
-      selector:
-        entity:
-          domain: sensor
-          device_class: monetary
-    
-    house_load_sensor:
-      name: House Load Power Sensor
-      description: Sensor showing current house power consumption in Watts
-      selector:
-        entity:
-          domain: sensor
-          device_class: power
-    
-    battery_level_sensor:
-      name: Battery State of Charge Sensor
-      description: Sensor showing battery level percentage (0-100%)
-      selector:
-        entity:
-          domain: sensor
-          device_class: battery
-    
-    export_power_sensor:
-      name: Grid Export Power Sensor
-      description: Sensor showing power being exported to grid in Watts
-      selector:
-        entity:
-          domain: sensor
-          device_class: power
-    
-    # === FRONIUS INVERTER SETTINGS ===
-    modbus_hub_name:
+    # --- Modbus Configuration ---
+    modbus_hub:
       name: Modbus Hub Name
-      description: >
-        Name of your Fronius Modbus hub as configured in configuration.yaml.
-        Example: 'fronius_primo' or 'mb_fronius_control'
+      description: Name of your Modbus hub (from modbus configuration)
+      default: mb_fronius_control
       selector:
         text:
-      default: "mb_fronius_control"
     
     modbus_unit_id:
       name: Modbus Unit ID
-      description: >
-        Modbus unit/slave ID of your Fronius inverter (usually 1).
-        Check your Fronius web interface under Communication > Modbus.
+      description: Modbus unit ID for your Fronius inverter (usually 1)
+      default: 1
       selector:
         number:
           min: 1
           max: 247
           mode: box
-      default: 1
     
-    modbus_sunspec_address:
-      name: SunSpec Power Limit Register Address
-      description: >
-        Modbus register address for SunSpec WMaxLim (power limit control).
-        
-        **Common values:**
-        - Fronius Primo/Symo (older): 40232
-        - Fronius Gen24: 40232 (same)
-        - Fronius Symo Hybrid: 40232
-        
-        **How to find:** Check Fronius Modbus documentation or use a Modbus scanner.
-        If unsure, try 40232 first (works for most models).
-      selector:
-        number:
-          min: 40000
-          max: 50000
-          mode: box
-      default: 40232
-    
-    inverter_max_output:
-      name: Inverter Maximum AC Output (Watts)
-      description: >
-        Maximum AC output power of your Fronius inverter in Watts.
-        
-        **Common models:**
-        - Fronius Primo 3.0: 3000W
-        - Fronius Primo 5.0: 5000W
-        - Fronius Primo 8.2: 8200W
-        - Fronius Symo 10.0: 10000W
-        - Fronius Symo 15.0: 15000W
-        - Fronius Symo 20.0: 20000W
-        - Fronius Gen24 Plus 10.0: 10000W
-        
-        **Find yours:** Check inverter nameplate or Fronius Solar.web app.
+    # --- Inverter Specifications ---
+    inverter_max_power:
+      name: Inverter Maximum Power (W)
+      description: Maximum power output of your Fronius inverter in Watts
+      default: 8200
       selector:
         number:
           min: 1000
           max: 30000
           step: 100
-          unit_of_measurement: "W"
+          unit_of_measurement: W
           mode: box
-      default: 8200
     
-    # === BATTERY & CHARGING SETTINGS ===
-    battery_charge_target:
-      name: Target Battery Charge Power (Watts)
-      description: >
-        Desired battery charging power during negative pricing in Watts.
-        Set this to your battery's maximum charge rate or lower if you want slower charging.
-        
-        **Examples:**
-        - Alpha ESS: 4500-5000W
-        - Tesla Powerwall 2: 5000W
-        - BYD Battery-Box: 2500-5000W (depends on model)
-        
-        If you don't have a battery, set this to 0.
+    battery_charge_rate:
+      name: Battery Charge Rate (W)
+      description: Desired battery charging power during curtailment in Watts
+      default: 4500
       selector:
         number:
           min: 0
           max: 15000
           step: 100
-          unit_of_measurement: "W"
+          unit_of_measurement: W
           mode: box
-      default: 4500
     
     safety_buffer:
-      name: Safety Buffer (Watts)
-      description: >
-        Additional power buffer to prevent grid import during fluctuations.
-        Recommended: 500-1000W depending on how variable your house load is.
+      name: Safety Buffer (W)
+      description: Additional power buffer to prevent grid export fluctuations
+      default: 500
       selector:
         number:
           min: 0
           max: 2000
-          step: 100
-          unit_of_measurement: "W"
+          step: 50
+          unit_of_measurement: W
           mode: box
-      default: 500
     
     minimum_generation:
-      name: Minimum Solar Generation (Watts)
-      description: >
-        Absolute minimum solar generation to prevent complete shutdown.
-        Safety feature - inverter will never go below this value.
+      name: Minimum Generation (W)
+      description: Minimum power the inverter should generate during curtailment
+      default: 500
       selector:
         number:
           min: 0
-          max: 2000
+          max: 5000
           step: 100
-          unit_of_measurement: "W"
+          unit_of_measurement: W
           mode: box
-      default: 500
     
-    # === TIMING ===
+    # --- Sensor Entities ---
+    grid_price_sensor:
+      name: Grid Sell Price Sensor
+      description: Sensor showing current grid sell price (negative during curtailment periods)
+      selector:
+        entity:
+          domain: sensor
+    
+    battery_level_sensor:
+      name: Battery Level Sensor
+      description: Sensor showing battery state of charge percentage
+      selector:
+        entity:
+          domain: sensor
+    
+    load_power_sensor:
+      name: House Load Power Sensor
+      description: Sensor showing current house power consumption in Watts
+      selector:
+        entity:
+          domain: sensor
+    
+    export_power_sensor:
+      name: Export Power Sensor
+      description: Sensor showing current grid export power in Watts
+      selector:
+        entity:
+          domain: sensor
+    
+    # --- Helper Entities ---
+    curtailment_active_switch:
+      name: Curtailment Active Switch
+      description: Input boolean to track curtailment state (will be created if it doesn't exist)
+      default: input_boolean.solar_curtailment_active
+      selector:
+        entity:
+          domain: input_boolean
+    
+    manual_override_switch:
+      name: Manual Override Switch
+      description: Input boolean for emergency manual override (will be created if it doesn't exist)
+      default: input_boolean.fronius_manual_override
+      selector:
+        entity:
+          domain: input_boolean
+    
+    # --- Time Settings ---
     curtailment_end_time:
       name: Curtailment End Time
-      description: >
-        Time to automatically restore full solar generation.
-        Amber negative pricing typically ends around 4pm, but adjust for your region.
-      selector:
-        time:
+      description: Time to automatically disable curtailment each day
       default: "16:00:00"
-    
-    manual_override_reset_time:
-      name: Manual Override Reset Time
-      description: >
-        Time to automatically turn off manual override each day (recommended 6am).
-        This ensures the automation is ready to run the next day.
       selector:
         time:
+    
+    daily_reset_time:
+      name: Daily Reset Time
+      description: Time to reset inverter to full power each morning
       default: "06:00:00"
+      selector:
+        time:
+    
+    update_interval:
+      name: Update Interval (minutes)
+      description: How often to check and update curtailment (in minutes)
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+          unit_of_measurement: min
+          mode: slider
 
-# === HELPER ENTITIES (Created automatically) ===
-# The blueprint will create these input_boolean helpers if they don't exist
-
-variables:
-  hub_name: !input modbus_hub_name
-  unit_id: !input modbus_unit_id
-  register_address: !input modbus_sunspec_address
-  max_output: !input inverter_max_output
-  battery_target: !input battery_charge_target
-  buffer_watts: !input safety_buffer
-  min_gen: !input minimum_generation
-
-# === MAIN AUTOMATION ===
 mode: restart
 max: 10
 max_exceeded: silent
+
+variables:
+  inverter_max: !input inverter_max_power
+  battery_charge: !input battery_charge_rate
+  buffer: !input safety_buffer
+  min_gen: !input minimum_generation
 
 trigger:
   - platform: state
     entity_id: !input battery_level_sensor
   - platform: state
-    entity_id: !input grid_Sell_price_sensor
+    entity_id: !input grid_price_sensor
   - platform: state
-    entity_id: !input house_load_sensor
+    entity_id: !input load_power_sensor
   - platform: state
     entity_id: !input export_power_sensor
   - platform: event
     event_type: homeassistant_start
   - platform: time_pattern
-    minutes: "/5"
+    minutes: !input update_interval
 
 condition:
   - condition: time
     before: !input curtailment_end_time
   - condition: state
-    entity_id: input_boolean.fronius_manual_override
+    entity_id: !input manual_override_switch
     state: "off"
 
 action:
   - choose:
-      # === ACTIVATE CURTAILMENT (Negative Price, Not Yet Active) ===
+      # --- CHOICE 1: CURTAILMENT ACTIVATION (NEGATIVE PRICE, NOT YET ACTIVE) ---
       - conditions:
           - condition: numeric_state
-            entity_id: !input grid_Sell_price_sensor
+            entity_id: !input grid_price_sensor
             below: 0
           - condition: state
-            entity_id: input_boolean.solar_curtailment_active
+            entity_id: !input curtailment_active_switch
             state: "off"
         sequence:
           - variables:
-              house_load: "{{ states(!input house_load_sensor) | int(0) }}"
-              target_generation: "{{ house_load + battery_target + buffer_watts }}"
-              watt_limit: "{{ [[target_generation, min_gen] | max, max_output] | min }}"
-              sunspec_power_limit: "{{ (watt_limit * 10000 / max_output) | int(0) }}"
+              house_load: "{{ states(!input load_power_sensor) | int(0) }}"
+              target_generation: "{{ house_load + battery_charge + buffer }}"
+              watt_limit: "{{ [[target_generation, min_gen] | max, inverter_max] | min }}"
+              sunspec_power_limit: "{{ (watt_limit * 10000 / inverter_max) | int(0) }}"
           
           - service: input_boolean.turn_on
             target:
-              entity_id: input_boolean.solar_curtailment_active
+              entity_id: !input curtailment_active_switch
           
           - service: modbus.write_register
             data:
-              hub: "{{ hub_name }}"
-              unit: "{{ unit_id }}"
-              address: "{{ register_address }}"
+              hub: !input modbus_hub
+              unit: !input modbus_unit_id
+              address: 40232
               value:
                 - "{{ sunspec_power_limit }}"
                 - 0
                 - 0
                 - 0
-                - 0  # WMaxLim_Ena: 0 = ENABLE limit
+                - 0  # WMaxLim_Ena: 0 to ENABLE the limit
 
-      # === MAINTAIN CURTAILMENT (Negative Price, Already Active) ===
+      # --- CHOICE 2: MAINTAIN/UPDATE CURTAILMENT (NEGATIVE PRICE, ALREADY ACTIVE) ---
       - conditions:
           - condition: numeric_state
-            entity_id: !input grid_Sell_price_sensor
+            entity_id: !input grid_price_sensor
             below: 0
           - condition: state
-            entity_id: input_boolean.solar_curtailment_active
+            entity_id: !input curtailment_active_switch
             state: "on"
         sequence:
           - variables:
-              house_load: "{{ states(!input house_load_sensor) | int(0) }}"
-              target_generation: "{{ house_load + battery_target + buffer_watts }}"
-              watt_limit: "{{ [[target_generation, min_gen] | max, max_output] | min }}"
-              sunspec_power_limit: "{{ (watt_limit * 10000 / max_output) | int(0) }}"
+              house_load: "{{ states(!input load_power_sensor) | int(0) }}"
+              target_generation: "{{ house_load + battery_charge + buffer }}"
+              watt_limit: "{{ [[target_generation, min_gen] | max, inverter_max] | min }}"
+              sunspec_power_limit: "{{ (watt_limit * 10000 / inverter_max) | int(0) }}"
           
           - service: modbus.write_register
             data:
-              hub: "{{ hub_name }}"
-              unit: "{{ unit_id }}"
-              address: "{{ register_address }}"
+              hub: !input modbus_hub
+              unit: !input modbus_unit_id
+              address: 40232
               value:
                 - "{{ sunspec_power_limit }}"
                 - 0
                 - 0
                 - 0
-                - 0  # Keep limit enabled
+                - 0  # WMaxLim_Ena: 0 to keep limit enabled
 
-      # === DEACTIVATE CURTAILMENT (Positive Price, Currently Active) ===
+      # --- CHOICE 3: CURTAILMENT DEACTIVATION (POSITIVE/ZERO PRICE, CURRENTLY ACTIVE) ---
       - conditions:
           - condition: not
             conditions:
               - condition: numeric_state
-                entity_id: !input grid_Sell_price_sensor
+                entity_id: !input grid_price_sensor
                 below: 0
           - condition: state
-            entity_id: input_boolean.solar_curtailment_active
+            entity_id: !input curtailment_active_switch
             state: "on"
         sequence:
           - service: input_boolean.turn_off
             target:
-              entity_id: input_boolean.solar_curtailment_active
+              entity_id: !input curtailment_active_switch
           
           - service: modbus.write_register
             data:
-              hub: "{{ hub_name }}"
-              unit: "{{ unit_id }}"
-              address: "{{ register_address }}"
+              hub: !input modbus_hub
+              unit: !input modbus_unit_id
+              address: 40232
               value:
-                - "{{ max_output }}"
-                - 0
-                - 0
-                - 0
-                - 1  # WMaxLim_Ena: 1 = DISABLE limit (full power)
+                - "{{ inverter_max }}"  # WMaxLim_W: Set to max power
+                - 0                      # WMaxLim_W_SF
+                - 0                      # Reserved
+                - 0                      # Reserved
+                - 1                      # WMaxLim_Ena: 1 to DISABLE the limit
 
+    # --- DEFAULT: NO ACTION NEEDED (POSITIVE PRICE, ALREADY OFF) ---
     default: []
+
+---
+# Additional automation for 4pm restoration
+blueprint:
+  name: Fronius Solar Curtailment - 4PM Restoration
+  description: >
+    Companion automation to restore Fronius to full power at the specified time
+    (default 4pm). This should be imported along with the main curtailment blueprint.
+  
+  domain: automation
+  
+  input:
+    modbus_hub:
+      name: Modbus Hub Name
+      description: Name of your Modbus hub (must match main automation)
+      default: mb_fronius_control
+      selector:
+        text:
+    
+    modbus_unit_id:
+      name: Modbus Unit ID
+      description: Modbus unit ID for your Fronius inverter (usually 1)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 247
+          mode: box
+    
+    inverter_max_power:
+      name: Inverter Maximum Power (W)
+      description: Maximum power output of your Fronius inverter in Watts (must match main automation)
+      default: 8200
+      selector:
+        number:
+          min: 1000
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    
+    curtailment_active_switch:
+      name: Curtailment Active Switch
+      description: Input boolean to track curtailment state (must match main automation)
+      default: input_boolean.solar_curtailment_active
+      selector:
+        entity:
+          domain: input_boolean
+    
+    restoration_time:
+      name: Restoration Time
+      description: Time to automatically restore full power each day
+      default: "16:00:00"
+      selector:
+        time:
+
+mode: single
+
+trigger:
+  - platform: time
+    at: !input restoration_time
+
+condition:
+  - condition: state
+    entity_id: !input curtailment_active_switch
+    state: "on"
+
+action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: !input curtailment_active_switch
+  
+  - service: modbus.write_register
+    data:
+      hub: !input modbus_hub
+      unit: !input modbus_unit_id
+      address: 40232
+      value:
+        - !input inverter_max_power  # WMaxLim_W: Set to max power
+        - 0                           # WMaxLim_W_SF
+        - 0                           # Reserved
+        - 0                           # Reserved
+        - 1                           # WMaxLim_Ena: 1 to DISABLE the limit
+
+---
+# Additional automation for manual override
+blueprint:
+  name: Fronius Solar Curtailment - Manual Override
+  description: >
+    Emergency override to immediately restore Fronius to full power when
+    the manual override switch is activated.
+  
+  domain: automation
+  
+  input:
+    modbus_hub:
+      name: Modbus Hub Name
+      description: Name of your Modbus hub (must match main automation)
+      default: mb_fronius_control
+      selector:
+        text:
+    
+    modbus_unit_id:
+      name: Modbus Unit ID
+      description: Modbus unit ID for your Fronius inverter (usually 1)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 247
+          mode: box
+    
+    inverter_max_power:
+      name: Inverter Maximum Power (W)
+      description: Maximum power output of your Fronius inverter in Watts (must match main automation)
+      default: 8200
+      selector:
+        number:
+          min: 1000
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    
+    curtailment_active_switch:
+      name: Curtailment Active Switch
+      description: Input boolean to track curtailment state (must match main automation)
+      default: input_boolean.solar_curtailment_active
+      selector:
+        entity:
+          domain: input_boolean
+    
+    manual_override_switch:
+      name: Manual Override Switch
+      description: Input boolean for emergency manual override (must match main automation)
+      default: input_boolean.fronius_manual_override
+      selector:
+        entity:
+          domain: input_boolean
+
+trigger:
+  - platform: state
+    entity_id: !input manual_override_switch
+    to: "on"
+
+action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: !input curtailment_active_switch
+  
+  - service: modbus.write_register
+    data:
+      hub: !input modbus_hub
+      unit: !input modbus_unit_id
+      address: 40232
+      value:
+        - !input inverter_max_power  # WMaxLim_W: Set to max power
+        - 0                           # WMaxLim_W_SF
+        - 0                           # Reserved
+        - 0                           # Reserved
+        - 1                           # WMaxLim_Ena: 1 to DISABLE the limit
+
+---
+# Additional automation for morning reset
+blueprint:
+  name: Fronius Solar Curtailment - Morning Reset
+  description: >
+    Reset Fronius to full power each morning to prepare for the day.
+  
+  domain: automation
+  
+  input:
+    modbus_hub:
+      name: Modbus Hub Name
+      description: Name of your Modbus hub (must match main automation)
+      default: mb_fronius_control
+      selector:
+        text:
+    
+    modbus_unit_id:
+      name: Modbus Unit ID
+      description: Modbus unit ID for your Fronius inverter (usually 1)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 247
+          mode: box
+    
+    inverter_max_power:
+      name: Inverter Maximum Power (W)
+      description: Maximum power output of your Fronius inverter in Watts (must match main automation)
+      default: 8200
+      selector:
+        number:
+          min: 1000
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    
+    curtailment_active_switch:
+      name: Curtailment Active Switch
+      description: Input boolean to track curtailment state (must match main automation)
+      default: input_boolean.solar_curtailment_active
+      selector:
+        entity:
+          domain: input_boolean
+    
+    reset_time:
+      name: Morning Reset Time
+      description: Time to reset inverter each morning
+      default: "06:00:00"
+      selector:
+        time:
+
+mode: single
+
+trigger:
+  - platform: time
+    at: !input reset_time
+
+action:
+  - service: input_boolean.turn_off
+    target:
+      entity_id: !input curtailment_active_switch
+  
+  - service: modbus.write_register
+    data:
+      hub: !input modbus_hub
+      unit: !input modbus_unit_id
+      address: 40232
+      value:
+        - !input inverter_max_power  # WMaxLim_W: Set to max power
+        - 0                           # WMaxLim_W_SF
+        - 0                           # Reserved
+        - 0                           # Reserved
+        - 1                           # WMaxLim_Ena: 1 to DISABLE the limit
+
