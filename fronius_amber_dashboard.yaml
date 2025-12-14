@@ -1,212 +1,78 @@
-# ============================================================================
-# FRONIUS SOLAR CURTAILMENT DASHBOARD
-# ============================================================================
-# Copy this entire section and paste into a new dashboard view
-# Replace all placeholder entities (marked with # CHANGE THIS) with your actual entity IDs
-
 views:
-  - title: Solar Curtailment Monitor
-    icon: mdi:solar-power-variant
+  - title: Fronius Monitor
     cards:
-      # === MANUAL CONTROLS ===
       - type: entities
-        title: 🎛️ Manual Controls
+        title: Manual Controls
         entities:
           - entity: input_boolean.fronius_manual_override
-            name: 🚨 EMERGENCY OVERRIDE
+            name: 🚨 MANUAL OVERRIDE
             secondary_info: last-changed
           - type: divider
           - entity: input_boolean.solar_curtailment_active
             name: Curtailment Status
-            secondary_info: last-changed
         state_color: true
-        show_header_toggle: false
-
-      # === INSTRUCTIONS ===
       - type: markdown
-        title: ⚠️ Emergency Override Instructions
+        title: ⚠️ Override Instructions
         content: |-
-          **Turn ON Emergency Override to:**
-          • Immediately restore Fronius to full power
+          **Turn ON Manual Override to:**
+          • Immediately restore Fronius to 8.2kW
           • Block all automatic curtailment
-          • Use if automation misbehaves or you need full solar
-          
-          **Remember:** Turn OFF when issue is resolved!
-          Override automatically resets at 6am each day.
+          • Emergency failsafe if automation misbehaves
 
-      # === CURRENT STATUS ===
+          **Remember to turn OFF when issue is resolved!**
       - type: entities
-        title: 📊 Current System Status
+        title: Current Status
         entities:
-          - entity: sensor.amber_feed_in_price  # CHANGE THIS to your Amber Sell price sensor
-            name: Grid Sell Price
-            icon: mdi:currency-USD
-          - entity: sensor.inverter_pv_power  # CHANGE THIS to your solar power sensor
-            name: Solar Generation
-            icon: mdi:solar-power
-          - entity: sensor.inverter_load_power  # CHANGE THIS to your house load sensor
+          - entity: sensor.inverter_pv_power
+            name: Solar Production
+          - entity: sensor.inverter_load_power
             name: House Load
-            icon: mdi:home-lightning-bolt
-          - entity: sensor.inverter_battery_level  # CHANGE THIS to your battery level sensor
+          - entity: sensor.inverter_battery_level
             name: Battery Level
-            icon: mdi:battery
-          - entity: sensor.inverter_export_power  # CHANGE THIS to your export power sensor
-            name: Grid Export
-            icon: mdi:transmission-tower-export
-        state_color: true
-
-      # === LIVE CALCULATION ===
-      - type: markdown
-        title: 🧮 Live Calculation Debug
-        content: >-
-          **Current Time:** {{ now().strftime('%H:%M:%S') }}
-          
-          **Grid Sell Price:** {{ states('sensor.amber_feed_in_price') | float(0) | round(2) }}c/kWh
-          
-          **House Load:** {{ states('sensor.inverter_load_power') | int(0) }}W
-          
-          **Battery Charge Target:** 4500W
-          
-          **Safety Buffer:** 500W
-          
-          **Target Generation:**
-          {{ states('sensor.inverter_load_power') | int(0) + 4500 + 500 }}W
-          (House + Battery + Buffer)
-          
-          **Fronius Limit:** 
-          {% set house = states('sensor.inverter_load_power') | int(0) %}
-          {% set target = house + 4500 + 500 %}
-          {% set limit = [target, 8200] | min %}
-          {{ limit }}W (capped at inverter max)
-          
-          **Actual Solar Generation:** {{ states('sensor.inverter_pv_power') | int(0) }}W
-          
-          **Curtailment Allowed:** 
-          {% if now().hour < 16 and is_state('input_boolean.fronius_manual_override', 'off') %}
-          ✅ YES (before 4pm, no override)
-          {% else %}
-          ❌ NO (after 4pm or override active)
-          {% endif %}
-          
-          **Status:** 
-          {% if states('sensor.amber_feed_in_price') | float(0) < 0 %}
-          🔴 NEGATIVE PRICING - Curtailment should be active
-          {% else %}
-          🟢 POSITIVE PRICING - Full generation allowed
-          {% endif %}
-        card_mod:
-          style: |
-            ha-card {
-              background: var(--ha-card-background, var(--card-background-color, white));
-              font-family: monospace;
-            }
-
-      # === AUTOMATION STATUS ===
-      - type: entities
-        title: 🤖 Automation Status
-        entities:
-          - entity: automation.fronius_solar_curtailment_main  # CHANGE THIS to your blueprint automation name
-            name: Main Curtailment Logic
-            secondary_info: last-triggered
-          - entity: automation.fronius_curtailment_auto_restore
-            name: 4pm Auto-Restore
-            secondary_info: last-triggered
-          - entity: automation.fronius_manual_override_handler
-            name: Manual Override Handler
-            secondary_info: last-triggered
-          - entity: automation.fronius_manual_override_auto_reset
-            name: 6am Override Reset
-            secondary_info: last-triggered
-        state_color: true
-
-      # === 24 HOUR HISTORY ===
-      - type: history-graph
-        title: 📈 24 Hour Power Flow
-        hours_to_show: 24
-        refresh_interval: 60
-        entities:
-          - entity: sensor.amber_feed_in_price  # CHANGE THIS
+          - entity: sensor.smart_meter_63a_1_real_power
+            name: Grid Flow  - Negative is Exporting
+          - entity: sensor.grid_sell_price
             name: Grid Sell Price
-          - entity: sensor.inverter_pv_power  # CHANGE THIS
-            name: Solar Gen
-          - entity: sensor.inverter_load_power  # CHANGE THIS
-            name: House Load
-          - entity: sensor.inverter_export_power  # CHANGE THIS
-            name: Export
-          - entity: input_boolean.solar_curtailment_active
-            name: Curtailment
+      - type: markdown
+        title: Live Calculation
+        content: >-
+          **Time:** {{ now().strftime('%H:%M:%S') }}
 
-      # === ENERGY DASHBOARD LINK ===
-      - type: button
-        name: Open Energy Dashboard
-        icon: mdi:lightning-bolt
-        tap_action:
-          action: navigate
-          navigation_path: /energy
-        show_name: true
-        show_icon: true
+          **House Load:** {{ states('sensor.inverter_load_power') | int(0) }}W
 
-      # === DAILY STATISTICS ===
+          **Fronius Target:** {{ (states('sensor.inverter_load_power') | int(0)
+          + 4500 + 500) }}W
+
+          **Curtailment Allowed:** {% if now().hour < 16 and
+          is_state('input_boolean.fronius_manual_override', 'off') %}✅ YES{%
+          else %}❌ NO{% endif %}
+
+          **Override Active:** {% if
+          is_state('input_boolean.fronius_manual_override', 'on') %}🚨 YES{%
+          else %}✅ Normal{% endif %}
       - type: entities
-        title: 📊 Today's Summary
+        title: Automations Status
         entities:
-          - entity: sensor.daily_solar_generation  # CHANGE THIS to your daily solar sensor
-            name: Solar Generated
-            icon: mdi:solar-power
-          - entity: sensor.daily_grid_export  # CHANGE THIS
-            name: Exported to Grid
-            icon: mdi:transmission-tower-export
-          - entity: sensor.daily_grid_import  # CHANGE THIS
-            name: Imported from Grid
-            icon: mdi:transmission-tower-import
-          - entity: sensor.daily_battery_charge  # CHANGE THIS
-            name: Battery Charged
-            icon: mdi:battery-charging
-          - entity: sensor.daily_house_consumption  # CHANGE THIS
-            name: House Consumed
-            icon: mdi:home-lightning-bolt
-
-      # === CURTAILMENT LOG ===
-      - type: logbook
-        title: 🗒️ Recent Curtailment Events
+          - entity: automation.mirror_export_limit_to_fronius_primo
+            name: Main Curtailment
+          - entity: automation.remove_fronius_curtailment_at_4pm
+            name: 4pm Auto-Restore
+          - entity: automation.reset_fronius_at_6am
+            name: 6am Reset
+          - entity: automation.fronius_manual_override_force_full_power
+            name: Override Trigger
+        state_color: true
+      - type: history-graph
+        title: Generation Limiting Effect - 24 Hours
         hours_to_show: 24
         entities:
-          - automation.fronius_solar_curtailment_main  # CHANGE THIS
-          - input_boolean.solar_curtailment_active
-          - input_boolean.fronius_manual_override
+          - entity: sensor.inverter_pv_power
+            name: Solar Production
+          - entity: sensor.smart_meter_63a_1_real_power
+            name: Grid Flow
+          - entity: sensor.grid_sell_price
+            name: Grid Sell Price
+          - entity: input_boolean.solar_curtailment_active
+            name: Curtailment Active
 
-# ============================================================================
-# CUSTOMIZATION INSTRUCTIONS
-# ============================================================================
-# 
-# 1. Search for "# CHANGE THIS" comments throughout this file
-# 2. Replace placeholder entity IDs with your actual sensors:
-#    - sensor.amber_feed_in_price → your Amber Sell price sensor
-#    - sensor.inverter_pv_power → your solar generation sensor
-#    - sensor.inverter_load_power → your house load sensor
-#    - sensor.inverter_battery_level → your battery SOC sensor
-#    - sensor.inverter_export_power → your grid export sensor
-#    - automation names → your actual automation entity IDs
-# 
-# 3. Adjust the "Live Calculation Debug" card:
-#    - Change 4500 to your battery_charge_target
-#    - Change 500 to your safety_buffer
-#    - Change 8200 to your inverter_max_output
-#    - Change 16 to your curtailment_end_time hour
-# 
-# 4. Optional: Remove cards you don't need (Daily Statistics, etc.)
-# 
-# 5. To add this dashboard:
-#    Method A (New Dashboard):
-#      - Settings > Dashboards > Add Dashboard
-#      - Choose "New dashboard from scratch"
-#      - Click three dots > Edit Dashboard > Raw configuration editor
-#      - Paste this entire YAML
-#    
-#    Method B (New View in Existing Dashboard):
-#      - Open your dashboard
-#      - Edit Dashboard > Add View
-#      - Switch to YAML mode
-#      - Paste the "views:" section
-# 
-# =============================================================================
+
